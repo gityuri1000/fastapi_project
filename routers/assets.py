@@ -7,13 +7,14 @@ from fastapi.encoders import jsonable_encoder
 from orm.assets import AssetsRepositoryORM
 from database.db_dependencies import Session
 
-from schemas.assets import SAddedAssetResponse, SAddedAsset
+from schemas.assets import SAddedAssetsResponse, SAddedAsset
 
 assets = APIRouter(tags=["Assets"])
 
-@assets.get("/select_all", response_model=List[SAddedAssetResponse])
+@assets.get("/select_all", response_model=SAddedAssetsResponse)
 async def get_all_users(session: Session = Depends()):
     assets = await AssetsRepositoryORM.select_assets(session)
+    
     assets = jsonable_encoder(assets)
     return JSONResponse(assets, status_code=status.HTTP_200_OK)
 

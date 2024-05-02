@@ -9,27 +9,26 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database.engine import session_factory
 from database.models import AddedAssets
 
-from schemas.assets import SAddedAsset, SAddedAssetResponse, SAddedAssetsResponse
+from schemas.assets import SAddedAsset, SAddedAssetsResponse, SAddedAssetResponse
 
 
 class AssetsRepositoryORM:
     
     @classmethod
-    async def select_assets(cls, session: AsyncSession) -> List[SAddedAssetResponse]:
+    async def select_assets(cls, session: AsyncSession) -> SAddedAssetsResponse:
         assets = []
 
         stmt = (
             select(AddedAssets)
         )
 
-        result = await session.scalars(stmt)
+        result = (await session.scalars(stmt)).all()
 
         for row in result:
-            row.__dict__.pop("_sa_instance_state")
-            assets.append(SAddedAsset(
-                id=row.__dict__["id"],
-                title=row.__dict__["title"],
-                owner=row.__dict__["owner"]
+            assets.append(SAddedAssetResponse(
+                id=row.id,
+                title=row.title,
+                owner=row.owner
                 )
             )
 

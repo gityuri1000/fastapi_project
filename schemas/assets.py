@@ -1,5 +1,5 @@
 from typing import Sequence, List, Union, Literal
-from pydantic import BaseModel, Field, UUID4
+from pydantic import BaseModel, ConfigDict, Field, UUID4
 
 OwnerUsername = str
 
@@ -13,5 +13,9 @@ class SAddedAsset(SAddedAssetBase):
 class SAddedAssetResponse(SAddedAssetBase):
     id: int = Field(gt=0)
 
+    model_config = ConfigDict(
+        from_attributes=True
+    )
+
 class SAddedAssetsResponse(BaseModel):
-    assets: List[Union[SAddedAsset, None]]
+    assets: List[Union[SAddedAssetResponse, None]]
