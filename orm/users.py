@@ -2,118 +2,83 @@ import hashlib
 
 from typing import Union
 
-from fastapi import status
-
-from sqlalchemy import select, delete, update
+from sqlalchemy import select, update
 from sqlalchemy.orm import selectinload
-from sqlalchemy.ext.asyncio import AsyncSession
+
+from orm.base import AbstractORM
 
 from database.models import Users
 
-from schemas.assets import SAddedAssetResponse
-from schemas.users import (
-    SUser,
-    SUserResponse, 
-    SUsersResponse,
-    SUsername,
+from dto.users import (
+    UserRequestDTO,
+    UserResponseDTO, 
+    UserResponseAllDTO
 )
 
-class UsersRepositoryORM:
+class UsersRepositoryORM(AbstractORM):
+
+    async def select_all(self) -> UserResponseAllDTO:
+        stmt = select(Users).options(selectinload(Users.assets))
+
+        res = (await self.session.execute(stmt)).scalars().all()
+        
+        users = [UserResponseDTO.model_validate(row, from_attributes=True) for row in res]
+
+        return UserResponseAllDTO(users=users)
     
-    @classmethod
-    async def create_user(cls, session: AsyncSession, user: SUser) -> Union[SUserResponse, None]:
-        hashed_password = hashlib.sha256(user.password.encode('utf-8')).hexdigest()
-        
-        exist: Union[SUserResponse, None] = await cls.select_user_by_username(
-            session, 
-            SUsername(username=user.username)
-            )
-        
-        if not exist:
-            stmt = Users(
-                username=user.username,
-                password=hashed_password
-            )
+    async def select_by_name(self, name: str) -> Union[UserResponseDTO, None]:
+        stmt = (
+            select(Users).options(selectinload(Users.assets)).
+            where(Users.username == name)
+        )
 
-            session.add(stmt)
-            await session.flush()
+        result = (await self.session.scalars(stmt)).one_or_none()
 
-            return await cls.select_user_by_username(session, SUsername(username=user.username))
+        if result:
+
+            return UserResponseDTO.model_validate(result)
+    
+    async def create(self, creating: UserRequestDTO) -> Union[UserResponseDTO, None]:
+        hashed_password = hashlib.sha256(creating.password.encode('utf-8')).hexdigest()
+        
+        stmt = Users(
+            username=creating.username,
+            password=hashed_password
+        )
+
+        self.session.add(stmt)
+        await self.session.flush()
+
+        return await self.select_by_name(creating.username)
                 
-    @classmethod
-    async def deactivate_user(cls, session: AsyncSession, user: SUser) -> None:
+    async def deactivate(self, deactivating: UserRequestDTO) -> Union[UserResponseDTO, None]:
         stmt = (
             update(Users).
-            where(Users.username == user.username).
+            where(Users.username == deactivating.username).
             values(is_active = 0)
         )
 
-        await session.execute(stmt)        
+        await self.session.execute(stmt)
+        return await self.select_by_name(deactivating.username)
 
-    @classmethod
-    async def activate_user(cls, session: AsyncSession, user: SUser) -> None:
+    async def activate(self, activating: UserRequestDTO) -> Union[UserResponseDTO, None]:
         stmt = (
             update(Users).
-            where(Users.username == user.username).
+            where(Users.username == activating).
             values(is_active = 1)
         )
 
-        await session.execute(stmt)
+        await self.session.execute(stmt)
+        return await self.select_by_name(activating)
 
-    
-    @classmethod
-    async def select_users(cls, session: AsyncSession) -> SUsersResponse:
-        users = []
-
-        stmt = select(Users).options(selectinload(Users.assets))
-        result = (await session.scalars(stmt)).all()
-        
-        for row in result:
-
-            assets = [SAddedAssetResponse.model_validate(asset) for asset in row.assets]
-
-            users.append(SUserResponse(
-                id=row.id,
-                username=row.username,
-                is_active=row.is_active,
-                assets=assets
-                )
-            )
-
-        return SUsersResponse(users=users)
-        
-    @classmethod
-    async def select_user_by_username(cls, session: AsyncSession, username: SUsername) -> Union[SUserResponse, None]:
+    async def _select_by_name_with_password_info(self, name: str) -> Union[UserRequestDTO, None]:
         stmt = (
             select(Users).options(selectinload(Users.assets)).
-            where(Users.username == username.username)
+            where(Users.username == name)
         )
 
-        result = (await session.scalars(stmt)).first()
+        result = (await self.session.scalars(stmt)).first()
 
         if result:
 
-            assets = [SAddedAssetResponse.model_validate(asset) for asset in result.assets]
-
-            return SUserResponse(
-                id=result.id,
-                username=result.username,
-                is_active=result.is_active,
-                assets=assets
-            )
-
-    @classmethod
-    async def _select_user_by_username_with_password_info(cls, session: AsyncSession, username: SUsername) -> Union[SUser, None]:
-        stmt = (
-            select(Users).options(selectinload(Users.assets)).
-            where(Users.username == username.username)
-        )
-
-        result = (await session.scalars(stmt)).first()
-
-        if result:
-
-            return SUser(
-                username=result.username,
-                password=result.password
-            )
+            return UserRequestDTO.model_validate(result)
