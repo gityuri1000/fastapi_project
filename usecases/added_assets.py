@@ -29,17 +29,17 @@ class UsecaseAddedAssets(AbstractUseCase):
         
         return assets
     
-    # async def uc_select_by_name(self, name: str) -> AddedAssetResponseDTO:
+    async def uc_select_by_name(self, owner, title: str) -> AddedAssetResponseDTO:
 
-    #     selected = await self.orm.select_by_name(name)
+        selected = await self.orm.select_by_name(title, owner)
 
-    #     if not selected:
-    #         raise HTTPException(
-    #             detail="User with this name doesnt exist",
-    #             status_code=status.HTTP_404_NOT_FOUND
-    #         )
+        if not selected:
+            raise HTTPException(
+                detail="Asset with this name doesnt exist",
+                status_code=status.HTTP_404_NOT_FOUND
+            )
         
-    #     return selected
+        return selected
 
     async def uc_add(self, loggined_user: AuthUsername, adding: AddedAssetRequestDTO) -> AddedAssetResponseDTO:
 
@@ -52,4 +52,17 @@ class UsecaseAddedAssets(AbstractUseCase):
             
         added = await self.orm.add(loggined_user, adding)
         
-        return added  
+        return added 
+
+    async def uc_delete(self, loggined_user: AuthUsername, title: str) -> AddedAssetResponseDTO:
+        asset = await self.uc_select_by_name(loggined_user, title)
+
+        if not asset:
+            raise HTTPException(
+                detail="Asset with name doesnt exist",
+                status_code=status.HTTP_409_CONFLICT
+            )
+        
+        deleted = await self.orm.delete(loggined_user, title)
+
+        return deleted

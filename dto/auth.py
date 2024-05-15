@@ -1,6 +1,8 @@
-from typing import Literal
+from typing import Literal, List
 
 from pydantic import BaseModel, ConfigDict
+
+AuthUsername = str
 
 class AuthBaseDTO(BaseModel):
     model_config = ConfigDict(
@@ -14,8 +16,9 @@ class AuthTokenDTO(AuthBaseDTO):
 
 class AuthResponseDTO(AuthBaseDTO):
     username: str
+    role: Literal["admin", "regular"]
 
 class AuthRequestDTO(AuthResponseDTO):
     password: str
-
-AuthUsername = str
+    role: List[Literal["admin", "regular"]]
+    

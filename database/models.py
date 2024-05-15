@@ -1,12 +1,16 @@
 import uuid
-from typing import List
 
-from sqlalchemy import String, Integer, ForeignKey, UUID
+from typing import List, Literal
+
+from sqlalchemy import String, Integer, ForeignKey, UUID, DateTime, func
 from sqlalchemy.orm import DeclarativeBase, mapped_column, relationship, Mapped
 
 from database.engine import async_engine
 
 from dto.users import UserResponseDTO
+
+Role = Literal["admin", "regular"]
+AssetType = Literal["share", "bond"]
 
 class Base(DeclarativeBase):
     pass
@@ -18,6 +22,7 @@ class Users(Base):
     id = mapped_column(UUID, primary_key=True, default=uuid.uuid4)
     username = mapped_column(String, unique=True, nullable=False)
     password = mapped_column(String, nullable=False)
+    role: Mapped[Role] = mapped_column(default="regular")
     is_active = mapped_column(Integer, default=1)
     assets: Mapped[List["AddedAssets"]] = relationship()
 
@@ -29,19 +34,17 @@ class Users(Base):
             assets=self.assets
         )
 
-class Assets(Base):
-
-    __tablename__ = "assets"
-
-    id = mapped_column(Integer, primary_key=True)
-    title = mapped_column(String, nullable=False)
-
 class AddedAssets(Base):
 
     __tablename__ = "added_assets"
 
     id = mapped_column(Integer, primary_key=True)
+    figi = mapped_column(String, nullable=False)
     title = mapped_column(String, nullable=False)
+    amount = mapped_column(Integer, nullable=False, default=1)
+    asset_type: Mapped[AssetType] = mapped_column(nullable=False)
+    price = mapped_column(Integer, nullable=False, default=0)
+    last_update = mapped_column(DateTime, server_default=func.now())
     owner = mapped_column(ForeignKey("users.username"))
 
 

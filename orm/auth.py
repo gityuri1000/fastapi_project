@@ -21,7 +21,8 @@ class AuthRepositoryORM(AbstractORM):
         stmt = (
             select(Users).
             where(Users.username == authenticating.username).
-            where(Users.password == hash_password)
+            where(Users.password == hash_password).
+            where(Users.role == authenticating.role[0])
         )
 
         authenticated = (await self.session.scalars(stmt)).one_or_none()

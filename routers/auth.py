@@ -19,10 +19,10 @@ async def login_user(
     session: Session = Depends()
 ) -> AuthTokenDTO:
     authenticated = await UsecaseAuth(session).uc_authenticate(
-        AuthRequestDTO(username=login_form.username, password=login_form.password)
+        AuthRequestDTO(username=login_form.username, password=login_form.password, role=login_form.scopes)
     )
 
-    acess_token = await UsecaseAuth(session).create_access_token(authenticated)
+    acess_token = await UsecaseAuth(session).uc_create_access_token(authenticated, login_form.scopes)
     return acess_token
 
 

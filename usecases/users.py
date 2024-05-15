@@ -11,7 +11,7 @@ from usecases.base import AbstractUseCase
 from dto.users import (
     UserResponseAllDTO, 
     UserResponseDTO,
-    UserRequestDTO
+    UserRequestDTO,
 )
 
 class UsecaseUsers(AbstractUseCase):
@@ -30,7 +30,6 @@ class UsecaseUsers(AbstractUseCase):
         return selected
     
     async def uc_select_by_name(self, name: str) -> UserResponseDTO:
-
         selected = await self.orm.select_by_name(name)
 
         if not selected:
@@ -54,49 +53,19 @@ class UsecaseUsers(AbstractUseCase):
         
         return created 
     
-    async def uc_deactivate(self, deactivating: UserRequestDTO) -> UserResponseDTO:
-        hashed_password = hashlib.sha256(deactivating.password.encode('utf-8')).hexdigest()
+    async def uc_deactivate(self, username: str) -> UserResponseDTO:        
         
-        deactivated = await self._uc_select_by_name_with_password_info(deactivating.username)
+        await self.uc_select_by_name(username)
 
-        if deactivated.password != hashed_password:
-            raise HTTPException(
-                detail="Enter correct username and password",
-                status_code=status.HTTP_401_UNAUTHORIZED
-            )
-
-        await self.orm.deactivate(deactivating)
-
-        return await self.uc_select_by_name(deactivating.username)
+        return await self.orm.deactivate(username)
     
-    async def uc_activate(self, activating: UserRequestDTO) -> UserResponseDTO:
-        hashed_password = hashlib.sha256(activating.password.encode('utf-8')).hexdigest()
+    async def uc_activate(self, username: str) -> UserResponseDTO:        
         
-        activated: UserRequestDTO = await self._uc_select_by_name_with_password_info(activating.username)
+        await self.uc_select_by_name(username)
 
-        if activated.password != hashed_password:
-            raise HTTPException(
-                detail="Enter correct username and password",
-                status_code=status.HTTP_401_UNAUTHORIZED
-            )
-
-        await self.orm.activate(activating.username)
-
-        return await self.uc_select_by_name(activating.username)
-    
-    async def uc_authenticate(self, authenticating: UserRequestDTO) -> UserResponseDTO:
-        authenticated = await self.orm.authenticate(authenticating)
-
-        if not authenticated:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect username or password"
-            )
-        
-        return authenticated
+        return await self.orm.activate(username)
     
     async def _uc_select_by_name_with_password_info(self, name: str) -> UserRequestDTO:
-
         selected = await self.orm._select_by_name_with_password_info(name)
 
         if not selected:

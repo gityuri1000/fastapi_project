@@ -25,10 +25,10 @@ class AddedAssetsRepositoryORM(AbstractORM):
 
         return AddedAssetResponseAllDTO(assets=assets)
     
-    async def select_by_name(self, name: str, owner: str) -> Union[AddedAssetResponseDTO, None]:
+    async def select_by_name(self, title: str, owner: str) -> Union[AddedAssetResponseDTO, None]:
         stmt = (
             select(AddedAssets).
-            where(AddedAssets.title == name).
+            where(AddedAssets.title == title).
             where(AddedAssets.owner == owner)
         )
 
@@ -41,10 +41,28 @@ class AddedAssetsRepositoryORM(AbstractORM):
 
     async def add(self, loggined_user: AuthUsername, asset: AddedAssetRequestDTO) -> AddedAssetRequestDTO:
         stmt = AddedAssets(
+            figi=asset.figi,
             title=asset.title,
+            amount=asset.amount,
+            asset_type=asset.asset_type,
             owner=loggined_user
         )
 
         self.session.add(stmt)
 
         return asset
+    
+    async def delete(self, loggined_user: AuthUsername, title: str) -> AddedAssetRequestDTO:
+        deleted = await self.select_by_name(title, loggined_user)
+
+        stmt = (
+            delete(AddedAssets).
+            where(AddedAssets.title == title).
+            where(AddedAssets.owner == loggined_user)
+        )
+
+        await self.session.execute(stmt)
+
+        return deleted
+    
+

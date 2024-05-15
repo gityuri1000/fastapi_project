@@ -12,7 +12,8 @@ from database.models import Users
 from dto.users import (
     UserRequestDTO,
     UserResponseDTO, 
-    UserResponseAllDTO
+    UserResponseAllDTO,
+    Username
 )
 
 class UsersRepositoryORM(AbstractORM):
@@ -51,25 +52,25 @@ class UsersRepositoryORM(AbstractORM):
 
         return await self.select_by_name(creating.username)
                 
-    async def deactivate(self, deactivating: UserRequestDTO) -> Union[UserResponseDTO, None]:
+    async def deactivate(self, username: str) -> Union[UserResponseDTO, None]:
         stmt = (
             update(Users).
-            where(Users.username == deactivating.username).
+            where(Users.username == username).
             values(is_active = 0)
         )
 
         await self.session.execute(stmt)
-        return await self.select_by_name(deactivating.username)
+        return await self.select_by_name(username)
 
-    async def activate(self, activating: UserRequestDTO) -> Union[UserResponseDTO, None]:
+    async def activate(self, username: str) -> Union[UserResponseDTO, None]:
         stmt = (
             update(Users).
-            where(Users.username == activating).
+            where(Users.username == username).
             values(is_active = 1)
         )
 
         await self.session.execute(stmt)
-        return await self.select_by_name(activating)
+        return await self.select_by_name(username)
 
     async def _select_by_name_with_password_info(self, name: str) -> Union[UserRequestDTO, None]:
         stmt = (
